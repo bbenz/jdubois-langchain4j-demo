@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-application
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-application
+  template:
+    metadata:
+      labels:
+        app: demo-application
+    spec:
+      containers:
+      - name: demo-application
+        image: langchain4jconfdev.azurecr.io/demo-application:latest
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-application
+spec:
+  selector:
+    app: demo-application
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: ClusterIP

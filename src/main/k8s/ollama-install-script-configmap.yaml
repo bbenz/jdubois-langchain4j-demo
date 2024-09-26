@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ollama-install-script
+data:
+  install-ollama-models.sh: |
+    #!/bin/bash
+    ollama pull phi3.5
+    ollama pull nomic-embed-text
+
+    

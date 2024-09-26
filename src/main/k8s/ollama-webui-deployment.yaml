@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama-webui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ollama-webui
+  template:
+    metadata:
+      labels:
+        app: ollama-webui
+    spec:
+      containers:
+      - name: ollama-webui
+        image: ollamawebui/ollama-webui
+        ports:
+        - containerPort: 8081
+        env:
+        - name: WEBUI_URL
+          value: "http://localhost:8081"
+        - name: WEBUI_SECRET_KEY
+          value: "t0p-s3cr3t"
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-webui
+spec:
+  selector:
+    app: ollama-webui
+  ports:
+    - protocol: TCP
+      port: 8081
+      targetPort: 8081
+  type: ClusterIP

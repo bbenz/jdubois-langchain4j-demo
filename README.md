@@ -1,48 +1,44 @@
-# LangChain4J demo
+# LangChain4j demo
 
 _Author: [Julien Dubois](https://www.julien-dubois.com)_
 
 ## Goal
 
-This is a Spring Boot project that demonstrates how to use LangChain4J to create Java applications using LLMs.
+This is a Spring Boot project that demonstrates how to use LangChain4j to create Java applications using LLMs.
 
 It contains the following demos:
 
 - How to generate an image using Dalle-3.
-- How to generate a text using GPT-4o and Phi-3.5.
+- How to generate a text using GPT-4o, GPT-4o-mini, Phi-4 and tinyllama.
 - How to use a chat conversation with memory of the context.
 - How to ingest data into a vector database, and use it.
+- How LangChain4j's "Easy RAG" works, and a complete example using it.
+- How to use function calling
+- How to use structured outputs (JSON Schemas)
 
-Those demos either run locally (with Docker, using Ollama + Phi-3.5 and Qdrant) or in the cloud (using Azure, with Azure OpenAI and Azure AI Search).
+Those demos either run locally (with Docker, using Ollama and Qdrant) or in the cloud (using Azure OpenAI or GitHub Models, and Azure AI Search).
 
 ## Slides
 
-Slides explaining this demo are available here: [LangChain4J intro.pdf](LangChain4J%20intro.pdf).
+2 slide decks are available to detail this demo:
+
+- [An introduction to LangChain4j](LangChain4J%20intro.pdf): a quick overview of LangChain4j
+- [EasyRAG with LangChain4j](LangChain4J%20EasyRAG%20demo.pdf): a focus on demos 10 and 11, detailing the RAG pattern with LangChain4j
 
 ## Configuration
 
-### Running locally with Docker
+There are several Spring Boot profiles, so you can test the demos with different configurations, tools and models.
 
-This configuration uses Ollama and Qdrant, running in Docker containers. Image generation with Dalle-3 is not available in this configuration.
+### _Option 1_ : Running in the cloud with Azure
 
-Local execution is enabled by using the `local` Spring Boot profile.
-One way to do this is to set `spring.profiles.active=local` in the `src/main/resources/application.properties` file.
+This configuration uses:
 
-To set up the necessary resources, you need to have Docker installed on your machine, and run with Docker Compose the `src/main/docker/docker-compose.yml` file.
+- __Chat Model__: Azure OpenAI with gpt-4o
+- __Image Model__: Azure OpenAI with dalle-3
+- __Embedding model__: Azure OpenAI with text-embedding-ada
+- __Embedding store__: Azure AI Search
 
-It will set up:
-
-- An Ollama instance, with the Phi-3.5 and the nomic-embed-text models. Its Web UI is available at [http://localhost:8081/](http://localhost:8081/).
-- A Qdrant instance. Its Web UI is available at [http://localhost:6333/dashboard](http://localhost:6333/dashboard).
-
-__Improving performance__: if you have GPUs on your machine, Ollama performance can be greatly improved by using them. The easiest way is to install Ollama locally on your machine, and install the
-models like in the `src/main/docker/install-ollama-models.sh` script.
-
-### Running in the cloud with Azure
-
-This configuration uses Azure OpenAI and Azure AI Search.
-
-Azure is enabled by using the `azure` Spring Boot profile.
+It is enabled by using the `azure` Spring Boot profile.
 One way to do this is to set `spring.profiles.active=azure` in the `src/main/resources/application.properties` file.
 
 To provision the Azure resources, you need to run the `src/main/script/deploy-azure-openai-models.sh` script. It will create the following resources:
@@ -55,6 +51,97 @@ At the end of this script, the following environment variables will be displayed
 - `AZURE_OPENAI_KEY`: your Azure OpenAI API key.
 - `AZURE_SEARCH_ENDPOINT`: your Azure AI Search URL endpoint.
 - `AZURE_SEARCH_KEY`: your Azure AI Search API key.
+
+### _Option 2_ : Fully local, not very good, but small and fast
+
+This configuration uses:
+
+- __Chat Model__: Ollama with tinyllama
+- __Image Model__: Not available
+- __Embedding model__: in-memory Java with AllMiniLmL6V2EmbeddingModel
+- __Embedding store__: Qdrant
+
+It is enabled by using the `small` Spring Boot profile.
+One way to do this is to set `spring.profiles.active=small` in the `src/main/resources/application.properties` file.
+
+To set up the necessary resources, you need to have Docker installed on your machine, and run with Docker Compose the `src/main/docker/docker-compose-small.yml` file.
+
+It will set up:
+
+- An Ollama instance, with the tinyllama model.
+- A Qdrant instance. Its Web UI is available at [http://localhost:6333/dashboard](http://localhost:6333/dashboard).
+
+### _Option 3_ : Fully local, not very fast, but with good quality
+
+This configuration uses:
+
+- __Chat Model__: Ollama with Phi 4
+- __Image Model__: Not available
+- __Embedding model__: Ollama with nomic-embed-text
+- __Embedding store__: Qdrant
+
+It is enabled by using the `good` Spring Boot profile.
+One way to do this is to set `spring.profiles.active=good` in the `src/main/resources/application.properties` file.
+
+This configuration, especially when running inside Docker, requires a good amount of resources (CPU and RAM).
+If you run into timeouts, that's because your machine is not powerful enough to run it.
+
+__Improving performance__: if you have GPUs on your machine, Ollama performance can be greatly improved by using them. The easiest way is to install Ollama locally on your machine, and install the
+models like in the `src/main/docker/install-ollama-models-good.sh` script.
+
+To set up the necessary resources, you need to have Docker installed on your machine, and run with Docker Compose the `src/main/docker/docker-compose-good.yml` file.
+
+It will set up:
+
+- An Ollama instance, with the phi4 and the nomic-embed-text models. Its Web UI is available at [http://localhost:8081/](http://localhost:8081/).
+- A Qdrant instance. Its Web UI is available at [http://localhost:6333/dashboard](http://localhost:6333/dashboard).
+
+### _Option 4_ : GitHub Models
+
+GitHub Models are available [here](https://github.com/marketplace/models).
+
+This configuration uses:
+
+- __Chat Model__: GitHub Models with gpt-4o-mini
+- __Image Model__: Not available
+- __Embedding model__: GitHub Models with text-embedding-3-small
+- __Embedding store__: Qdrant
+
+It is enabled by using the `github` Spring Boot profile.
+One way to do this is to set `spring.profiles.active=github` in the `src/main/resources/application.properties` file.
+
+To set up the necessary resources, you need to have Docker installed on your machine, and run with Docker Compose the `src/main/docker/docker-compose-github.yml` file.
+
+It will set up:
+
+- A Qdrant instance. Its Web UI is available at [http://localhost:6333/dashboard](http://localhost:6333/dashboard).
+
+For accessing GitHub Models, you'll need an environment variable named `GITHUB_TOKEN` with a GitHub token that grants permission to access the models.
+
+### _Option 5_ : Same as option 3 ("good"), but using Elasticsearch instead of Qdrant as an embedding store
+
+This configuration uses:
+
+- __Chat Model__: Ollama with Phi 4
+- __Image Model__: Not available
+- __Embedding model__: Ollama with nomic-embed-text
+- __Embedding store__: Elasticsearch
+
+It is enabled by using the `elasticsearch` Spring Boot profile.
+One way to do this is to set `spring.profiles.active=elasticsearch` in the `src/main/resources/application.properties` file.
+
+This configuration, especially when running inside Docker, requires a good amount of resources (CPU and RAM).
+If you run into timeouts, that's because your machine is not powerful enough to run it.
+
+__Improving performance__: if you have GPUs on your machine, Ollama performance can be greatly improved by using them. The easiest way is to install Ollama locally on your machine, and install the
+models like in the `src/main/docker/install-ollama-models-good.sh` script.
+
+To set up the necessary resources, you need to have Docker installed on your machine, and run with Docker Compose the `src/main/docker/docker-compose-elasticsearch.yml` file.
+
+It will set up:
+
+- An Ollama instance, with the phi4 and the nomic-embed-text models.
+- An Elasticsearch instance. Its Web UI is available at [http://localhost:8081](http://localhost:8081).
 
 ## Running the demos
 

@@ -1,10 +1,16 @@
 package com.example.demo;
 
+import com.example.demo.assistant.json.Person;
+import com.example.demo.assistant.json.PersonAssistant;
+import com.example.demo.assistant.rag.RagAssistant;
+import com.example.demo.assistant.tool.StockPriceService;
+import com.example.demo.assistant.tool.ToolAssistant;
 import dev.langchain4j.chain.ConversationalChain;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.loader.UrlDocumentLoader;
 import dev.langchain4j.data.document.parser.TextDocumentParser;
-import dev.langchain4j.data.document.transformer.HtmlTextExtractor;
+import dev.langchain4j.data.document.splitter.DocumentSplitters;
+import dev.langchain4j.data.document.transformer.jsoup.HtmlToTextDocumentTransformer;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -42,11 +48,14 @@ public class DemoController {
 
     private final EmbeddingStore<TextSegment> embeddingStore;
 
-    public DemoController(ImageModel imageModel, ChatLanguageModel chatLanguageModel, EmbeddingModel embeddingModel, EmbeddingStore<TextSegment> embeddingStore) {
+    private final StockPriceService stockPriceService;
+
+    public DemoController(ImageModel imageModel, ChatLanguageModel chatLanguageModel, EmbeddingModel embeddingModel, EmbeddingStore<TextSegment> embeddingStore, StockPriceService stockPriceService) {
         this.imageModel = imageModel;
         this.chatLanguageModel = chatLanguageModel;
         this.embeddingModel = embeddingModel;
         this.embeddingStore = embeddingStore;
+        this.stockPriceService = stockPriceService;
     }
 
     @GetMapping("/")
@@ -175,7 +184,8 @@ public class DemoController {
         Document document = UrlDocumentLoader.load("https://www.microsoft.com/investor/reports/ar23/index.html", new TextDocumentParser());
 
         EmbeddingStoreIngestor ingestor = EmbeddingStoreIngestor.builder()
-                .documentTransformer(new HtmlTextExtractor())
+                .documentTransformer(new HtmlToTextDocumentTransformer(".annual-report"))
+                .documentSplitter(DocumentSplitters.recursive(300, 30))
                 .embeddingModel(embeddingModel)
                 .embeddingStore(embeddingStore)
                 .build();
@@ -189,14 +199,41 @@ public class DemoController {
     String rag(Model model) {
         String question = "How many people are employed by Microsoft in the US?";
 
-        Assistant assistant = AiServices.builder(Assistant.class)
+        RagAssistant ragAssistant = AiServices.builder(RagAssistant.class)
                 .chatLanguageModel(chatLanguageModel)
                 .contentRetriever(new EmbeddingStoreContentRetriever(embeddingStore, embeddingModel, 3))
                 .build();
 
-        String answer = assistant.chat(question);
+        String answer = ragAssistant.augmentedChat(question);
 
         return getView(model, "11: Retrieval-Augmented Generation (RAG)", question, answer);
+    }
+
+    @GetMapping("/12")
+    String functionCalling(Model model) {
+        String question = "Is the current Microsoft stock higher than $450?";
+
+        ToolAssistant toolAssistant = AiServices.builder(ToolAssistant.class)
+                .chatLanguageModel(chatLanguageModel)
+                .tools(stockPriceService)
+                .build();
+
+        String answer = toolAssistant.toolCallingChat(question);
+
+        return getView(model, "12: Function calling", question, answer);
+    }
+
+    @GetMapping("/13")
+    String structuredOutputs(Model model) {
+        String question = "Julien likes the colors blue, white and red";
+
+        PersonAssistant assistant = AiServices.builder(PersonAssistant.class)
+                .chatLanguageModel(chatLanguageModel)
+                .build();
+
+        Person person = assistant.favoriteColor(question);
+
+        return getView(model, "13: Structured Outputs", question, person.getFavouriteColors().toString());
     }
 
     private static String getView(Model model, String demoName, String question, String answer) {
@@ -205,8 +242,4 @@ public class DemoController {
         model.addAttribute("answer", answer);
         return "demo";
     }
-}
-
-interface Assistant {
-    String chat(String userMessage);
 }
